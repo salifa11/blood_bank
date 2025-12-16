@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "354407498642",
+    "firebase_url": "https://bloodbank-bdc3d-default-rtdb.firebaseio.com",
+    "project_id": "bloodbank-bdc3d",
+    "storage_bucket": "bloodbank-bdc3d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:354407498642:android:7db39e3526443f842db74b",
+        "android_client_info": {
+          "package_name": "com.example.bloodbank"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgJdIaJ9Wwd834wWVmynTVzOWa8acKHRg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:354407498642:android:36679220a56736082db74b",
+        "android_client_info": {
+          "package_name": "com.example.bloodlink"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgJdIaJ9Wwd834wWVmynTVzOWa8acKHRg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Bloodbank</string>
+    <string name="title_activity_login">LoginActivity</string>
+    <string name="title_activity_register">RegisterActivity</string>
+    <string name="title_activity_dashboard">DashboardActivity</string>
+    <string name="title_activity_landingpage">LandingpageActivity</string>
+    <string name="title_activity_donate">Donate</string>
+</resources>
