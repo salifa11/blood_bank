@@ -11,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -161,11 +162,31 @@ fun LoginPageScreen() {
                     }
 
 
-                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Forgot Password?",
+                        color = PrimaryRed,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .clickable {
+                                Toast.makeText(
+                                    context,
+                                    "Forgot password clicked",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                 context.startActivity(Intent(context, ForgotPasswordActivity::class.java))
+                            }
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.Start
                     ) {
                         Text(
                             buildAnnotatedString {

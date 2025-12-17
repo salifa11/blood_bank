@@ -35,9 +35,6 @@ import com.example.bloodbank.viewmodel.UserViewModel
 import com.example.bloodbank.repository.UserRepoImpl
 import com.example.bloodbank.model.User
 import java.util.UUID
-
-
-
 import com.example.bloodbank.view.LoginActivity
 
 
@@ -46,7 +43,7 @@ class RegisterActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            // FIX 2: Removed the unresolved BloodbankTheme wrapper
+
             RegisterPageScreen()
         }
     }
