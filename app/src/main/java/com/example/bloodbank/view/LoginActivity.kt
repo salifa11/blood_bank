@@ -1,6 +1,7 @@
 package com.example.bloodbank.view
 
 
+import android.app.Activity
 import android.widget.Toast
 
 import android.content.Context
@@ -40,8 +41,7 @@ val SecondaryText = Color(0xFF666666)   // Gray color for secondary text
 val LightRedBackground = Color(0xFFFFEDED) // Light red/pink for card background
 // ----------------------------------------------------
 
-// NOTE: We assume RegisterActivity is correctly defined in this 'view' package.
-// If not, you may need an import: import com.example.bloodbank.view.RegisterActivity
+
 
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,6 +63,7 @@ fun LoginPageScreen() {
     var passwordVisible by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
+
 
     val sharedPreferences = context.getSharedPreferences(
         "User",

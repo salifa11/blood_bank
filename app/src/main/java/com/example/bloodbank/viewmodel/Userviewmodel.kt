@@ -105,6 +105,19 @@ class UserViewModel(
         }
     }
 
+    fun resetPassword(email: String) {
+        viewModelScope.launch {
+            _loading.value = true
+            try {
+                userRepo.resetPassword(email)
+            } catch (e: Exception) {
+                _error.value = e.localizedMessage
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
     fun clearError() {
         _error.value = null
     }

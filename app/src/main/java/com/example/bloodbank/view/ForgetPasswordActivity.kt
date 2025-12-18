@@ -27,6 +27,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.bloodbank.repository.UserRepoImpl
+import com.example.bloodbank.viewmodel.UserViewModel
 
 class ForgotPasswordActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,6 +47,13 @@ fun ForgotPasswordScreen() {
 
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
+    val userViewModel: UserViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return UserViewModel(UserRepoImpl()) as T
+            }
+        }
+    )
 
     Scaffold(
         containerColor = Color.White,
@@ -57,7 +68,7 @@ fun ForgotPasswordScreen() {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",
-                    tint = PrimaryRed
+                    tint = Color(0xFFD32F2F)
                 )
             }
         }
@@ -77,7 +88,7 @@ fun ForgotPasswordScreen() {
             Icon(
                 imageVector = Icons.Default.Favorite,
                 contentDescription = null,
-                tint = PrimaryRed,
+                tint = Color(0xFFD32F2F),
                 modifier = Modifier.size(80.dp)
             )
 
@@ -87,7 +98,7 @@ fun ForgotPasswordScreen() {
                 text = "Forgot Password?",
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
-                color = DarkText
+                color = Color(0xFF212121)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -95,7 +106,7 @@ fun ForgotPasswordScreen() {
             Text(
                 text = "Enter your email and we’ll help you reset your password",
                 fontSize = 14.sp,
-                color = SecondaryText
+                color = Color(0xFF757575)
             )
 
             Spacer(modifier = Modifier.height(40.dp))
@@ -103,12 +114,17 @@ fun ForgotPasswordScreen() {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = LightRedBackground)
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
             ) {
 
                 Column(modifier = Modifier.padding(24.dp)) {
 
-                    InputLabel("Email Address")
+                    Text(
+                        text = "Email Address",
+                        color = Color(0xFF212121),
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
 
                     OutlinedTextField(
                         value = email,
@@ -138,15 +154,16 @@ fun ForgotPasswordScreen() {
                                     Toast.LENGTH_SHORT
                                 ).show()
                             } else {
+                                userViewModel.resetPassword(email)
                                 Toast.makeText(
                                     context,
-                                    "Password reset link sent (UI only)",
+                                    "Password reset link sent",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryRed)
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
                     ) {
                         Text("Reset Password")
                     }
@@ -157,7 +174,7 @@ fun ForgotPasswordScreen() {
 
             Text(
                 text = "Back to Login",
-                color = PrimaryRed,
+                color = Color(0xFFD32F2F),
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.clickable {
                     context.startActivity(
