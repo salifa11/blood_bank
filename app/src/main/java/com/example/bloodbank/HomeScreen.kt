@@ -1,100 +1,54 @@
-//package com.example.bloodbank
-//
-//import android.content.Intent
-//import android.os.Bundle
-//import androidx.activity.ComponentActivity
-//import androidx.activity.compose.setContent
-//import androidx.compose.foundation.background
-//import androidx.compose.foundation.clickable
-//import androidx.compose.foundation.layout.Arrangement
-//import androidx.compose.foundation.layout.Box
-//import androidx.compose.foundation.layout.Column
-//import androidx.compose.foundation.layout.Row
-//import androidx.compose.foundation.layout.Spacer
-//import androidx.compose.foundation.layout.fillMaxSize
-//import androidx.compose.foundation.layout.fillMaxWidth
-//import androidx.compose.foundation.layout.height
-//import androidx.compose.foundation.layout.padding
-//import androidx.compose.foundation.layout.size
-//import androidx.compose.foundation.rememberScrollState
-//import androidx.compose.foundation.shape.RoundedCornerShape
-//import androidx.compose.foundation.text.KeyboardOptions
-//import androidx.compose.foundation.verticalScroll
-//import androidx.compose.material.icons.Icons
-//import androidx.compose.material.icons.filled.ArrowDropDown
-//import androidx.compose.material.icons.filled.Bloodtype
-//import androidx.compose.material.icons.filled.Email
-//import androidx.compose.material.icons.filled.Favorite
-//import androidx.compose.material.icons.filled.Lock
-//import androidx.compose.material.icons.filled.Person
-//import androidx.compose.material.icons.filled.Phone
-//import androidx.compose.material.icons.filled.Visibility
-//import androidx.compose.material.icons.filled.VisibilityOff
-//import androidx.compose.material3.Button
-//import androidx.compose.material3.ButtonDefaults
-//import androidx.compose.material3.Card
-//import androidx.compose.material3.CardDefaults
-//import androidx.compose.material3.DropdownMenu
-//import androidx.compose.material3.DropdownMenuItem
-//import androidx.compose.material3.Icon
-//import androidx.compose.material3.MaterialTheme
-//import androidx.compose.material3.OutlinedTextField
-//import androidx.compose.material3.OutlinedTextFieldDefaults
-//import androidx.compose.material3.Scaffold
-//import androidx.compose.material3.Text
-//import androidx.compose.runtime.Composable
-//import androidx.compose.runtime.mutableStateOf
-//import androidx.compose.runtime.remember
-//import androidx.compose.ui.Alignment
-//import androidx.compose.ui.Modifier
-//import androidx.compose.ui.graphics.Color
-//import androidx.compose.ui.platform.LocalContext
-//import androidx.compose.ui.text.SpanStyle
-//import androidx.compose.ui.text.buildAnnotatedString
-//import androidx.compose.ui.text.font.FontWeight
-//import androidx.compose.ui.text.input.KeyboardType
-//import androidx.compose.ui.text.input.PasswordVisualTransformation
-//import androidx.compose.ui.text.input.VisualTransformation
-//import androidx.compose.ui.text.withStyle
-//import androidx.compose.ui.tooling.preview.Preview
-//import androidx.compose.ui.unit.dp
-//import androidx.compose.ui.unit.sp
-//
-//@Composable
-//fun HomeScreen() {
-//    Column(
-//        modifier = Modifier
-//            .fillMaxSize()
-//            .background(Color.Red)
-//    ) {
-//        Text("Home screen")
-//    }
-//}
-
 package com.example.bloodbank
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.bloodbank.model.Donation
+import com.example.bloodbank.repository.DonationRepoImpl
+import com.example.bloodbank.repository.UserRepoImpl
+import com.example.bloodbank.view.EditDonationActivity
+import com.example.bloodbank.viewmodel.DonationViewModel
+import com.example.bloodbank.viewmodel.UserViewModel
+import com.google.firebase.auth.FirebaseAuth
+import com.google.gson.Gson
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,6 +61,65 @@ class HomeActivity : ComponentActivity() {
 
 @Composable
 fun HomeScreen() {
+    val context = LocalContext.current
+    val userViewModel: UserViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return UserViewModel(UserRepoImpl()) as T
+            }
+        }
+    )
+    val donationViewModel: DonationViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return DonationViewModel(DonationRepoImpl()) as T
+            }
+        }
+    )
+
+    val currentUser by userViewModel.user.collectAsState()
+    val donations by donationViewModel.donations.collectAsState()
+    val isUserLoading by userViewModel.loading.collectAsState()
+    val isDonationsLoading by donationViewModel.loading.collectAsState()
+    val isLoading = isUserLoading || isDonationsLoading
+
+    var showDeleteDialog by remember { mutableStateOf<Donation?>(null) }
+
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+
+    LaunchedEffect(currentUserId) {
+        if (currentUserId != null) {
+            userViewModel.getUserById(currentUserId)
+            donationViewModel.getDonationsByUserId(currentUserId)
+        }
+    }
+
+    if (showDeleteDialog != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("Delete Donation") },
+            text = { Text("Are you sure you want to delete this donation record?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (currentUserId != null) {
+                            donationViewModel.deleteDonation(showDeleteDialog!!.id, currentUserId)
+                        }
+                        showDeleteDialog = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showDeleteDialog = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -128,7 +141,7 @@ fun HomeScreen() {
                     fontSize = 14.sp
                 )
                 Text(
-                    text = "Salifa Shrestha",
+                    text = currentUser?.fullName ?: "User",
                     color = Color.White,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
@@ -140,8 +153,8 @@ fun HomeScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    InfoCard(title = "O+", subtitle = "Your Blood Type")
-                    InfoCard(title = "2", subtitle = "Times Donated")
+                    InfoCard(title = currentUser?.bloodGroup ?: "N/A", subtitle = "Your Blood Type")
+                    InfoCard(title = donations.size.toString(), subtitle = "Times Donated")
                 }
             }
         }
@@ -190,7 +203,75 @@ fun HomeScreen() {
             desc = "Find donation camps near you"
         )
 
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 📜 Donation History
+        SectionTitle("Donation History")
+
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+        } else if (donations.isEmpty()) {
+            Text(
+                text = "No donation history yet.",
+                modifier = Modifier
+                    .padding(16.dp)
+                    .align(Alignment.CenterHorizontally),
+                color = Color.Gray
+            )
+        } else {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                donations.forEach { donation ->
+                    DonationHistoryItem(
+                        donation = donation, 
+                        onDelete = { showDeleteDialog = it },
+                        onEdit = { 
+                            val intent = Intent(context, EditDonationActivity::class.java)
+                            intent.putExtra("DONATION", Gson().toJson(it))
+                            context.startActivity(intent)
+                        }
+                    )
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(30.dp))
+    }
+}
+
+@Composable
+fun DonationHistoryItem(donation: Donation, onDelete: (Donation) -> Unit, onEdit: (Donation) -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val formattedDate = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date(donation.date))
+            Text(text = formattedDate, fontWeight = FontWeight.SemiBold)
+            Text(text = donation.location, color = Color.Gray)
+            Row {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Edit Donation",
+                    modifier = Modifier.clickable { onEdit(donation) }
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete Donation",
+                    tint = Color.Red,
+                    modifier = Modifier.clickable { onDelete(donation) }
+                )
+            }
+        }
     }
 }
 
@@ -223,10 +304,9 @@ fun InfoCard(title: String, subtitle: String) {
 }
 
 @Composable
-fun ActionCard(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+fun ActionCard(title: String, icon: ImageVector) {
     Card(
         modifier = Modifier
-
             .height(90.dp)
             .clickable { },
         colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
@@ -256,7 +336,7 @@ fun SectionTitle(text: String) {
 
 @Composable
 fun ServiceItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     desc: String
 ) {

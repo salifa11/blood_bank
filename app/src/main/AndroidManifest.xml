@@ -30,10 +30,19 @@
             android:name=".view.RegisterActivity"
             android:exported="false" />
 
+        <!-- Profile -->
+        <activity
+            android:name=".view.ProfileActivity"
+            android:exported="false" />
 
         <!-- EDIT PROFILE -->
         <activity
             android:name=".view.EditProfileActivity"
+            android:exported="false" />
+
+        <!-- EDIT DONATION -->
+        <activity
+            android:name=".view.EditDonationActivity"
             android:exported="false" />
 
         <!-- DASHBOARD -->
