@@ -30,6 +30,12 @@
             android:name=".view.RegisterActivity"
             android:exported="false" />
 
+
+        <!-- EDIT PROFILE -->
+        <activity
+            android:name=".view.EditProfileActivity"
+            android:exported="false" />
+
         <!-- DASHBOARD -->
         <activity
             android:name=".view.DashboardActivity"

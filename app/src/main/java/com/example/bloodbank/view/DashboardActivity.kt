@@ -2,6 +2,7 @@ package com.example.bloodbank.view
 
 import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,10 +19,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -34,6 +37,7 @@ import com.example.bloodbank.ProfileScreen
 import com.example.bloodbank.R
 import com.example.bloodbank.SearchDonors
 import com.example.bloodbank.theme.ui.theme.BloodbankTheme
+import com.google.firebase.auth.FirebaseAuth
 
 class DashboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,6 +65,23 @@ fun DashboardBody(
     val activity = if (!isPreview) LocalContext.current as? Activity else null
 
     var selectedIndex by remember { mutableStateOf(0) }
+
+    // Hold the current user ID in a state that triggers recomposition
+    var currentUserId by remember { mutableStateOf( FirebaseAuth.getInstance().currentUser?.uid) }
+
+    // Listen for changes in auth state
+    if (!isPreview) {
+        DisposableEffect(FirebaseAuth.getInstance()) {
+            val listener = FirebaseAuth.AuthStateListener { auth ->
+                currentUserId = auth.currentUser?.uid
+
+            }
+            FirebaseAuth.getInstance().addAuthStateListener(listener)
+            onDispose {
+                FirebaseAuth.getInstance().removeAuthStateListener(listener)
+            }
+        }
+    }
 
     val navList = listOf(
         NavItem(R.drawable.baseline_home_24, "Home"),
@@ -127,7 +148,15 @@ fun DashboardBody(
                 0 -> HomeScreen()
                 1 -> SearchDonors()
                 2 -> Donate()
-                3 -> ProfileScreen()
+                3 -> {
+                    if (currentUserId != null) {
+                        ProfileScreen(userId = currentUserId!!)
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center){
+                            Text("You need to be logged in to see your profile")
+                        }
+                    }
+                }
             }
         }
     }
@@ -138,6 +167,6 @@ fun DashboardBody(
 @Composable
 fun DashboardPreview() {
     BloodbankTheme {
-        DashboardBody()
+        DashboardBody(isPreview = true)
     }
 }

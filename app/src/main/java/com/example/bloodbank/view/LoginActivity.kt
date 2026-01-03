@@ -11,14 +11,25 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,11 +39,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
 
 // --- COLOR DEFINITIONS (Replaces Theme Constants) ---
 val PrimaryRed = Color(0xFFD32F2F)      // Red for primary actions
@@ -61,14 +75,10 @@ fun LoginPageScreen() {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-
-
-    val sharedPreferences = context.getSharedPreferences(
-        "User",
-        Context.MODE_PRIVATE
-    )
+    val auth = FirebaseAuth.getInstance()
 
 
     Scaffold(containerColor = Color.White) { padding ->
@@ -137,29 +147,40 @@ fun LoginPageScreen() {
                                 return@Button
                             }
 
-                            val savedEmail = sharedPreferences.getString("email", null)
-                            val savedPassword = sharedPreferences.getString("password", null)
+                            isLoading = true
 
-                            if (email == savedEmail && password == savedPassword) {
+                            auth.signInWithEmailAndPassword(email, password)
+                                .addOnCompleteListener(context as Activity) { task ->
+                                    isLoading = false
+                                    if (task.isSuccessful) {
+                                        Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
+                                        val intent = Intent(context, DashboardActivity::class.java)
+                                        // Clear back stack and launch new task
+                                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                        context.startActivity(intent)
 
-                                Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
-
-                                context.startActivity(
-                                    Intent(context, DashboardActivity::class.java)
-                                )
-
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    "Invalid email or password",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Authentication failed: ${task.exception?.message}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryRed)
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryRed),
+                        enabled = !isLoading
                     ) {
-                        Text("Sign In")
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White
+                            )
+                        }
+                        else {
+                            Text("Sign In")
+                        }
                     }
 
 

@@ -3,6 +3,7 @@ package com.example.bloodbank.view
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -23,27 +24,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.ViewModelProvider
-import android.widget.Toast
-import com.example.bloodbank.viewmodel.UserViewModel
-import com.example.bloodbank.repository.UserRepoImpl
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.bloodbank.model.User
-import java.util.UUID
-import com.example.bloodbank.view.LoginActivity
-
+import com.example.bloodbank.repository.UserRepoImpl
+import com.example.bloodbank.viewmodel.UserViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 class RegisterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-
             RegisterPageScreen()
         }
     }
@@ -51,8 +50,7 @@ class RegisterActivity : ComponentActivity() {
 
 fun isValidPassword(password: String): Boolean {
     val passwordRegex = Regex(
-        "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@\$!%*#?&])[A-Za-z\\d@\$!%*#?&]{6,}$"
-    )
+        "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{6,}$")
     return passwordRegex.matches(password)
 }
 
@@ -67,20 +65,13 @@ fun RegisterPageScreen() {
     var bloodGroup by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     var showBloodGroupMenu by remember { mutableStateOf(false) }
 
     val bloodGroups = listOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
-
-    val sharedPreference = context.getSharedPreferences(
-        "User",
-        Context.MODE_PRIVATE
-    )
-
-    val editor = sharedPreference.edit()
-
 
     val userViewModel: UserViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
@@ -90,7 +81,9 @@ fun RegisterPageScreen() {
         }
     )
 
-    // Colors defined locally as requested
+    val auth = FirebaseAuth.getInstance()
+
+    // Colors defined locally
     val primaryRed = Color(0xFFD32F2F)
     val lightRedBackground = Color(0xFFFFEBEE)
     val darkText = Color(0xFF212121)
@@ -136,6 +129,7 @@ fun RegisterPageScreen() {
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
 
+                    // --- Input Fields ---
                     InputLabel("Full Name", darkText)
                     OutlinedTextField(
                         value = fullName,
@@ -184,17 +178,10 @@ fun RegisterPageScreen() {
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Select Blood Group") },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showBloodGroupMenu)
-                            },
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth(),
-                            leadingIcon = {
-                                Icon(Icons.Default.Bloodtype, contentDescription = null)
-                            }
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showBloodGroupMenu) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            leadingIcon = { Icon(Icons.Default.Bloodtype, null) }
                         )
-
                         ExposedDropdownMenu(
                             expanded = showBloodGroupMenu,
                             onDismissRequest = { showBloodGroupMenu = false }
@@ -220,18 +207,11 @@ fun RegisterPageScreen() {
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("Enter your password") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        visualTransformation =
-                            if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         singleLine = true,
                         leadingIcon = { Icon(Icons.Default.Lock, null) },
                         trailingIcon = {
-                            Icon(
-                                if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                null,
-                                modifier = Modifier.clickable {
-                                    passwordVisible = !passwordVisible
-                                }
-                            )
+                            Icon(if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, null, modifier = Modifier.clickable { passwordVisible = !passwordVisible })
                         }
                     )
 
@@ -244,18 +224,11 @@ fun RegisterPageScreen() {
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("Confirm your password") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        visualTransformation =
-                            if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         singleLine = true,
                         leadingIcon = { Icon(Icons.Default.Lock, null) },
                         trailingIcon = {
-                            Icon(
-                                if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                null,
-                                modifier = Modifier.clickable {
-                                    confirmPasswordVisible = !confirmPasswordVisible
-                                }
-                            )
+                            Icon(if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, null, modifier = Modifier.clickable { confirmPasswordVisible = !confirmPasswordVisible })
                         }
                     )
 
@@ -263,83 +236,74 @@ fun RegisterPageScreen() {
 
                     Button(
                         onClick = {
-
-                            if (!isValidPassword(password)) {
-                                Toast.makeText(
-                                    context,
-                                    "Password must be at least 6 characters and include a letter, number, and special character",
-                                    Toast.LENGTH_LONG
-                                ).show()
+                            // --- VALIDATION ---
+                            if (fullName.isBlank() || email.isBlank() || phone.isBlank() || bloodGroup.isBlank() || password.isBlank()) {
+                                Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
-
+                            if (!isValidPassword(password)) {
+                                Toast.makeText(context, "Password must be at least 6 characters and include a letter, number, and special character", Toast.LENGTH_LONG).show()
+                                return@Button
+                            }
                             if (password != confirmPassword) {
                                 Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
 
+                            isLoading = true
 
+                            // --- 1. CREATE AUTHENTICATION USER ---
+                            auth.createUserWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        // --- 2. GET THE UID OF THE NEWLY CREATED USER ---
+                                        val firebaseUser = auth.currentUser
+                                        val uid = firebaseUser!!.uid
 
+                                        // --- 3. CREATE THE USER OBJECT FOR THE DATABASE ---
+                                        val user = User(
+                                            uid = uid, // Use the real UID from Firebase Auth
+                                            fullName = fullName,
+                                            email = email,
+                                            phone = phone,
+                                            bloodGroup = bloodGroup,
+                                            isDonor = true
+                                        )
 
+                                        // --- 4. SAVE THE USER DATA TO REALTIME DATABASE ---
+                                        userViewModel.createUser(user)
+                                        isLoading = false
+                                        Toast.makeText(context, "Registration Successful", Toast.LENGTH_SHORT).show()
+                                        context.startActivity(Intent(context, LoginActivity::class.java))
 
-                            // Generate userId (like Firebase UID)
-                            val userId = UUID.randomUUID().toString()
-
-                            // Save email/password locally
-                            editor.putString("email", email)
-                            editor.putString("password", password)
-                            editor.apply()
-
-                            // Create User model (BloodBank)
-                            val user = User(
-                                uid = userId,
-                                fullName = fullName,
-                                email = email,
-                                phone = phone,
-                                bloodGroup = bloodGroup,
-                                isDonor = true
-                            )
-
-                            // Call ViewModel → Repo → Firebase
-                            userViewModel.createUser(user)
-
-                            Toast.makeText(context, "Registration Successful", Toast.LENGTH_SHORT).show()
-
-                            // Navigate to Login
-                            context.startActivity(
-                                Intent(context, LoginActivity::class.java)
-                            )
+                                    } else {
+                                        // --- HANDLE REGISTRATION FAILURE ---
+                                        isLoading = false
+                                        Toast.makeText(context, "Registration Failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                                    }
+                                }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = primaryRed)
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryRed),
+                        enabled = !isLoading
                     ) {
-                        Text("Register")
+                        if (isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                        } else {
+                            Text("Register")
+                        }
                     }
-
 
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Text(
                         buildAnnotatedString {
                             append("Already have an account? ")
-                            withStyle(
-                                SpanStyle(
-                                    color = primaryRed,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            ) {
-                                append("Sign In")
-                            }
+                            withStyle(SpanStyle(color = primaryRed, fontWeight = FontWeight.Bold)) { append("Sign In") }
                         },
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .clickable {
-                                val intent = Intent(context, LoginActivity::class.java)
-                                context.startActivity(intent)
-                            },
+                        modifier = Modifier.align(Alignment.CenterHorizontally).clickable { context.startActivity(Intent(context, LoginActivity::class.java)) },
                         color = secondaryText
                     )
-
                 }
             }
 
@@ -362,6 +326,5 @@ fun InputLabel(text: String, color: Color) {
 @Preview(showBackground = true)
 @Composable
 fun RegisterPreview() {
-    // FIX 2: Removed the unresolved BloodbankTheme wrapper
     RegisterPageScreen()
 }

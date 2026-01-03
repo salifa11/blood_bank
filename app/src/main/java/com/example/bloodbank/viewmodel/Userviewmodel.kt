@@ -24,6 +24,9 @@ class UserViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    private val _resetEmailSent = MutableStateFlow(false)
+    val resetEmailSent: StateFlow<Boolean> = _resetEmailSent
+
     fun createUser(user: User) {
         viewModelScope.launch {
             _loading.value = true
@@ -108,8 +111,10 @@ class UserViewModel(
     fun resetPassword(email: String) {
         viewModelScope.launch {
             _loading.value = true
+            _resetEmailSent.value = false // Reset state
             try {
                 userRepo.resetPassword(email)
+                _resetEmailSent.value = true // Set success state
             } catch (e: Exception) {
                 _error.value = e.localizedMessage
             } finally {

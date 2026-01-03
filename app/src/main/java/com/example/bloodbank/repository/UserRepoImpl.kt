@@ -1,8 +1,12 @@
 package com.example.bloodbank.repository
 
+import android.util.Log
 import com.example.bloodbank.model.User
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.tasks.await
 
 class UserRepoImpl : UserRepo {
@@ -23,6 +27,8 @@ class UserRepoImpl : UserRepo {
     }
 
     override suspend fun deleteUser(uid: String) {
+        // It is critical to delete the auth user first.
+        auth.currentUser?.takeIf { it.uid == uid }?.delete()?.await()
         database.child(uid).removeValue().await()
     }
 

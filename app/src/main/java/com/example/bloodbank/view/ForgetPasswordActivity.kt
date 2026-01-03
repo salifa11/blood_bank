@@ -42,6 +42,7 @@ class ForgotPasswordActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForgotPasswordScreen() {
 
@@ -54,6 +55,23 @@ fun ForgotPasswordScreen() {
             }
         }
     )
+
+    val isLoading by userViewModel.loading.collectAsState()
+    val error by userViewModel.error.collectAsState()
+    val resetEmailSent by userViewModel.resetEmailSent.collectAsState()
+
+    LaunchedEffect(error) {
+        error?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            userViewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(resetEmailSent) {
+        if (resetEmailSent) {
+            Toast.makeText(context, "Password reset link sent to your email", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Scaffold(
         containerColor = Color.White,
@@ -155,17 +173,17 @@ fun ForgotPasswordScreen() {
                                 ).show()
                             } else {
                                 userViewModel.resetPassword(email)
-                                Toast.makeText(
-                                    context,
-                                    "Password reset link sent",
-                                    Toast.LENGTH_SHORT
-                                ).show()
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                        enabled = !isLoading
                     ) {
-                        Text("Reset Password")
+                        if (isLoading) {
+                            CircularProgressIndicator(color = Color.White)
+                        } else {
+                            Text("Reset Password")
+                        }
                     }
                 }
             }
