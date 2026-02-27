@@ -123,6 +123,14 @@ class UserViewModel(
         }
     }
 
+    fun login(email: String, password: String, callback: (Boolean, String) -> Unit) {
+        _loading.value = true
+        userRepo.login(email, password) { success, message ->
+            _loading.value = false
+            callback(success, message)
+        }
+    }
+
     fun clearError() {
         _error.value = null
     }

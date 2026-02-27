@@ -10,4 +10,5 @@ interface UserRepo {
     suspend fun getAllDonors(): List<User>
     suspend fun getDonorsByBloodGroup(bloodGroup: String): List<User>
     suspend fun resetPassword(email: String)
+    fun login(email: String, password: String, callback: (Boolean, String) -> Unit)
 }
