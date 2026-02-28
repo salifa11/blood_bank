@@ -1,5 +1,7 @@
 package com.example.bloodbank.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.bloodbank.model.User
@@ -128,6 +130,14 @@ class UserViewModel(
         userRepo.login(email, password) { success, message ->
             _loading.value = false
             callback(success, message)
+        }
+    }
+
+    fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit) {
+        _loading.value = true
+        userRepo.uploadImage(context, imageUri) { url ->
+            _loading.value = false
+            callback(url)
         }
     }
 

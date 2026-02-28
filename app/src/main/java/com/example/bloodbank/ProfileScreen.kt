@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -27,15 +26,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil3.compose.AsyncImage
+import com.example.bloodbank.repository.DonationRepoImpl
 import com.example.bloodbank.repository.UserRepoImpl
 import com.example.bloodbank.theme.BloodbankTheme
 import com.example.bloodbank.view.EditProfileActivity
 import com.example.bloodbank.view.LoginActivity
+import com.example.bloodbank.viewmodel.DonationViewModel
 import com.example.bloodbank.viewmodel.UserViewModel
+import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(userId: String) {
     val userViewModel: UserViewModel = viewModel(
@@ -45,19 +47,27 @@ fun ProfileScreen(userId: String) {
             }
         }
     )
+    val donationViewModel: DonationViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return DonationViewModel(DonationRepoImpl()) as T
+            }
+        }
+    )
+    
     val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    Log.d("NEWDashboardActivity", "currentUserId: $userId")
-
     LaunchedEffect(userId) {
         userViewModel.getUserById(userId)
+        donationViewModel.getDonationsByUserId(userId)
     }
 
     val user by userViewModel.user.collectAsState()
-    Log.d("usertestt", "currentUserId: $user")
-
-    val isLoading by userViewModel.loading.collectAsState()
+    val donations by donationViewModel.donations.collectAsState()
+    val isLoadingUser by userViewModel.loading.collectAsState()
+    val isLoadingDonations by donationViewModel.loading.collectAsState()
+    val isLoading = isLoadingUser || isLoadingDonations
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -69,7 +79,6 @@ fun ProfileScreen(userId: String) {
                     onClick = {
                         userViewModel.deleteUser(userId)
                         showDeleteDialog = false
-                        // Navigate to login screen after deletion
                         val intent = Intent(context, LoginActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         context.startActivity(intent)
@@ -102,14 +111,24 @@ fun ProfileScreen(userId: String) {
             ) {
                 Spacer(modifier = Modifier.height(20.dp))
 
-                Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground), // Replace with a profile picture
-                    contentDescription = "Profile Picture",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                )
+                if (!userData.profileImageUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = userData.profileImageUrl,
+                        contentDescription = "Profile Picture",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                        contentDescription = "Default Profile Picture",
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -119,8 +138,6 @@ fun ProfileScreen(userId: String) {
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF212121)
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
                     text = userData.email,
@@ -139,34 +156,36 @@ fun ProfileScreen(userId: String) {
                         ProfileInfoRow(label = "Blood Group", value = userData.bloodGroup)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
                         ProfileInfoRow(label = "Phone", value = userData.phone)
+                        
                         userData.location?.let {
                             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
                             ProfileInfoRow(label = "Location", value = it)
                         }
+                        
                         userData.dateOfBirth?.let {
                             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
                             ProfileInfoRow(label = "Date of Birth", value = it)
                         }
+                        
                         userData.age?.let {
                             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
                             ProfileInfoRow(label = "Age", value = it.toString())
                         }
+                        
                         if (userData.lastDonationDate != null) {
                             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-                            val formattedDate = userData.lastDonationDate.let {
-                                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                                sdf.format(it)
-                            }
+                            val formattedDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(userData.lastDonationDate)
                             ProfileInfoRow(label = "Last Donated", value = formattedDate)
                         }
+                        
                         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-                        ProfileInfoRow(label = "Total Donations", value = userData.totalDonations.toString())
+                        // Display actual donation count from the database
+                        ProfileInfoRow(label = "Total Donations", value = donations.size.toString())
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // --- Buttons at the bottom ---
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -190,6 +209,23 @@ fun ProfileScreen(userId: String) {
                     }
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Logout Button
+                OutlinedButton(
+                    onClick = {
+                        FirebaseAuth.getInstance().signOut()
+                        val intent = Intent(context, LoginActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.Red)
+                ) {
+                    Text("Logout")
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
@@ -204,13 +240,5 @@ fun ProfileInfoRow(label: String, value: String) {
     ) {
         Text(text = label, fontWeight = FontWeight.Medium, color = Color(0xFF212121))
         Text(text = value, color = Color(0xFF757575))
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ProfileScreenPreview() {
-    BloodbankTheme {
-        // ProfileScreen(userId = "dummy-id")
     }
 }
